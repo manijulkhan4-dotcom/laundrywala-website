@@ -312,6 +312,23 @@ const status=document.getElementById("owner-login-status");
 const button=document.getElementById("owner-signin");
 const login=document.getElementById("owner-login");
 const tools=document.getElementById("owner-tools");
+let fallbackItems=Array.isArray(window.LW_PRODUCTS)?window.LW_PRODUCTS.slice():[];
+function renderOwnerFallback(){
+ const filter=document.getElementById("owner-category-filter"),list=document.getElementById("owner-items"),search=document.getElementById("owner-filter");
+ if(!filter||!list||!Array.isArray(fallbackItems))return;
+ const categories=[...new Set(fallbackItems.map(p=>p[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
+ const selected=filter.value;
+ filter.innerHTML='<option value="">All categories ('+fallbackItems.length+' items)</option>'+categories.map(c=>'<option value="'+String(c).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))+'">'+String(c)+' ('+fallbackItems.filter(p=>p[0]===c).length+')</option>').join("");
+ if(categories.includes(selected))filter.value=selected;
+ const chosen=filter.value,q=(search&&search.value||"").trim().toLowerCase();
+ const filtered=fallbackItems.filter(p=>(!chosen||p[0]===chosen)&&(!q||(String(p[0])+" "+String(p[1])).toLowerCase().includes(q)));
+ const safe=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const groups=[...new Set(filtered.map(p=>p[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
+ list.innerHTML=groups.map(cat=>'<section style="border:1px solid #dce5ef;border-radius:12px;padding:12px;margin:12px 0;background:#f8fafc"><h4>'+safe(cat)+' ('+filtered.filter(p=>p[0]===cat).length+' items)</h4>'+filtered.filter(p=>p[0]===cat).map(p=>'<p style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e5eaf0;padding:8px 0;margin:0"><span>'+safe(p[1])+'</span><b>₹'+Number(p[2]).toLocaleString("en-IN")+' / '+safe(p[3])+'</b></p>').join("")+'</section>').join("")||'<p>No items found in this category.</p>';
+}
+document.getElementById("owner-category-filter")?.addEventListener("change",renderOwnerFallback);
+document.getElementById("owner-filter")?.addEventListener("input",renderOwnerFallback);
+window.addEventListener("lw-catalog-updated",e=>{if(Array.isArray(e.detail)){fallbackItems=e.detail.slice();renderOwnerFallback();}});
 try{
  const app=getApps().find(a=>a.name==="[DEFAULT]")||initializeApp(config);
  const auth=getAuth(app);
@@ -323,7 +340,7 @@ try{
   finally{logout.disabled=false;logout.textContent="Sign out";}
  });
  onAuthStateChanged(auth,user=>{
-  if(user&&user.email===OWNER){login.hidden=true;tools.hidden=false;status.textContent="Signed in. Loading your price list…";}
+  if(user&&user.email===OWNER){login.hidden=true;tools.hidden=false;status.textContent="Signed in. Loading your price list…";renderOwnerFallback();}
   else{login.hidden=false;tools.hidden=true;}
  });
  button.addEventListener("click",async()=>{
