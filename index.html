@@ -174,8 +174,11 @@
   <p id="owner-status" role="status">Signed in.</p>
   <h3>Add a new item</h3>
   <div class="owner-row">
-   <input id="new-category" list="owner-categories" placeholder="Category">
-   <datalist id="owner-categories"></datalist>
+   <select id="new-category" aria-label="Choose category" style="padding:10px;border:1px solid #ccd7e2;border-radius:8px">
+    <option value="">Select category</option>
+    <option value="__new__">＋ Add new category</option>
+   </select>
+   <input id="new-category-custom" placeholder="Enter new category name" hidden aria-label="New category name">
    <input id="new-name" placeholder="Item name">
    <input id="new-price" type="number" min="0" step="0.01" placeholder="Price ₹">
    <select id="new-unit" style="padding:10px;border:1px solid #ccd7e2;border-radius:8px"><option>piece</option><option>kg</option><option>pair</option><option>service</option></select>
@@ -315,6 +318,13 @@ function renderOwnerFallback(){
  const filter=document.getElementById("owner-category-filter"),list=document.getElementById("owner-items"),search=document.getElementById("owner-filter");
  if(!filter||!list||!Array.isArray(fallbackItems))return;
  const categories=[...new Set(fallbackItems.map(p=>p[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
+ const addCategory=document.getElementById("new-category"),customCategory=document.getElementById("new-category-custom");
+ if(addCategory){
+  const previous=addCategory.value;
+  addCategory.innerHTML='<option value="">Select category</option>'+categories.map(c=>'<option value="'+safeFallback(c)+'">'+safeFallback(c)+'</option>').join("")+'<option value="__new__">＋ Add new category</option>';
+  if(previous==="__new__"||categories.includes(previous))addCategory.value=previous;
+  if(customCategory)customCategory.hidden=addCategory.value!=="__new__";
+ }
  const selected=filter.value;
  filter.innerHTML='<option value="">All categories ('+fallbackItems.length+' items)</option>'+categories.map(c=>'<option value="'+safeFallback(c)+'">'+safeFallback(c)+' ('+fallbackItems.filter(p=>p[0]===c).length+')</option>').join("");
  if(categories.includes(selected))filter.value=selected;
@@ -329,8 +339,12 @@ async function saveFallbackItems(){
  window.dispatchEvent(new CustomEvent("lw-catalog-updated",{detail:fallbackItems.map(p=>p.slice())}));
  status.textContent="Saved. Customer prices and cart are updated.";
 }
+document.getElementById("new-category")?.addEventListener("change",e=>{
+ const custom=document.getElementById("new-category-custom");
+ if(custom){custom.hidden=e.target.value!=="__new__";if(!custom.hidden)custom.focus();}
+});
 document.getElementById("owner-add")?.addEventListener("click",async()=>{
- const cat=document.getElementById("new-category").value.trim(),name=document.getElementById("new-name").value.trim(),priceText=document.getElementById("new-price").value,price=Number(priceText),unit=document.getElementById("new-unit").value;
+ const categoryChoice=document.getElementById("new-category").value,customCategory=document.getElementById("new-category-custom"),cat=(categoryChoice==="__new__"?(customCategory?.value||""):categoryChoice).trim(),name=document.getElementById("new-name").value.trim(),priceText=document.getElementById("new-price").value,price=Number(priceText),unit=document.getElementById("new-unit").value;
  const visibleStatus=document.getElementById("owner-status")||status;
  if(!cat||!name||priceText===""||!Number.isFinite(price)||price<0){visibleStatus.textContent="Enter category, item name and a valid price.";return;}
  const button=document.getElementById("owner-add");button.disabled=true;button.textContent="Adding…";
