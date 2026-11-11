@@ -142,7 +142,7 @@ onAuthStateChanged(auth,async user=>{
    else{status.textContent="Catalog could not be loaded. Refresh the page and try again.";return;}
    status.textContent="Signed in as owner. Changes save to the live website.";
    drawAdmin();
-  }catch(e){status.textContent="Could not load/save catalog. Check Firestore Rules.";console.error(e);}
+  }catch(e){status.textContent="Catalog error: "+(e.code||"unknown")+" — "+(e.message||"Please check Firebase Firestore settings.");console.error("Laundrywala catalog error:",e);}
  }else{login.hidden=false;tools.hidden=true;if(user)await signOut(auth);}
 });
 async function saveItems(){await setDoc(catalogRef,{items:catalogItems,updatedAt:new Date().toISOString()});publishItems(catalogItems);status.textContent="Saved. Customer prices and cart are updated.";}
