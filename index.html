@@ -209,6 +209,7 @@ let catalogItems=Array.isArray(window.LW_PRODUCTS)?window.LW_PRODUCTS:null;
 function fromFirestoreItems(items){return Array.isArray(items)?items.map(p=>Array.isArray(p)?p:[p.category,p.name,p.price,p.unit]):null;}
 function toFirestoreItems(items){return items.map(p=>({category:p[0],name:p[1],price:Number(p[2]),unit:p[3]}));}
 function publishItems(items){catalogItems=items;window.dispatchEvent(new CustomEvent("lw-catalog-updated",{detail:items}));}
+window.addEventListener("lw-catalog-updated",e=>{if(Array.isArray(e.detail)){catalogItems=fromFirestoreItems(e.detail);if(document.getElementById("owner-tools")&&!document.getElementById("owner-tools").hidden)drawAdmin();}});
 function htmlSafe(value){return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function renderPublicPrices(items){
  const box=document.getElementById("public-price-list");if(!box||!Array.isArray(items))return;
@@ -279,13 +280,6 @@ function drawAdmin(){
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 document.getElementById("owner-filter").addEventListener("input",drawAdmin);
 document.getElementById("owner-category-filter").addEventListener("change",drawAdmin);
-document.getElementById("owner-add").addEventListener("click",async()=>{
- const cat=document.getElementById("new-category").value.trim(),name=document.getElementById("new-name").value.trim(),price=Number(document.getElementById("new-price").value),unit=document.getElementById("new-unit").value;
- if(!cat||!name||!Number.isFinite(price)||price<0){status.textContent="Enter category, item name and a valid price.";return;}
- catalogItems.push([cat,name,price,unit]);
- try{await saveItems();document.getElementById("new-name").value="";document.getElementById("new-price").value="";drawAdmin();}
- catch(e){catalogItems.pop();status.textContent="Save failed. Check Firestore Rules.";console.error(e);}
-});
 list.addEventListener("click",async e=>{
  const save=e.target.closest("[data-save]"),del=e.target.closest("[data-delete]");
  if(save){const i=Number(save.dataset.save),row=save.closest(".owner-row"),cat=row.querySelector('[data-field="cat"]').value.trim(),name=row.querySelector('[data-field="name"]').value.trim(),price=Number(row.querySelector('[data-field="price"]').value),unit=row.querySelector('[data-field="unit"]').value;
@@ -335,6 +329,16 @@ async function saveFallbackItems(){
  window.dispatchEvent(new CustomEvent("lw-catalog-updated",{detail:fallbackItems.map(p=>p.slice())}));
  status.textContent="Saved. Customer prices and cart are updated.";
 }
+document.getElementById("owner-add")?.addEventListener("click",async()=>{
+ const cat=document.getElementById("new-category").value.trim(),name=document.getElementById("new-name").value.trim(),priceText=document.getElementById("new-price").value,price=Number(priceText),unit=document.getElementById("new-unit").value;
+ const visibleStatus=document.getElementById("owner-status")||status;
+ if(!cat||!name||priceText===""||!Number.isFinite(price)||price<0){visibleStatus.textContent="Enter category, item name and a valid price.";return;}
+ const button=document.getElementById("owner-add");button.disabled=true;button.textContent="Adding…";
+ fallbackItems.push([cat,name,price,unit]);
+ try{await saveFallbackItems();document.getElementById("new-name").value="";document.getElementById("new-price").value="";renderOwnerFallback();}
+ catch(err){fallbackItems.pop();visibleStatus.textContent="Add failed: "+(err.code||err.message||"Please try again.");renderOwnerFallback();}
+ finally{button.disabled=false;button.textContent="Add item";}
+});
 document.getElementById("owner-category-filter")?.addEventListener("change",renderOwnerFallback);
 document.getElementById("owner-filter")?.addEventListener("input",renderOwnerFallback);
 document.getElementById("owner-items")?.addEventListener("click",async e=>{
