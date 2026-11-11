@@ -233,14 +233,13 @@ function buildRateCard(items,autoPrint){
 }
 if(Array.isArray(catalogItems))renderPublicPrices(catalogItems);
 window.addEventListener("lw-catalog-updated",e=>renderPublicPrices(e.detail));
-document.getElementById("view-live-rate-card").addEventListener("click",()=>{if(catalogItems)buildRateCard(catalogItems,false);});
-document.getElementById("download-live-rate-card").addEventListener("click",()=>{if(catalogItems)buildRateCard(catalogItems,true);});
+
 async function loadPublicCatalog(){
  try{const snap=await getDoc(catalogRef);if(snap.exists()&&Array.isArray(snap.data().items)){const items=fromFirestoreItems(snap.data().items);if(items)publishItems(items);}}
  catch(e){console.warn("Could not load online catalog:",e);}
 }
 loadPublicCatalog();
-function openOwnerPanel(){panel.style.display="block";panel.scrollIntoView({behavior:"smooth",block:"start"});}document.getElementById("owner-top-link").addEventListener("click",e=>{e.preventDefault();openOwnerPanel();});
+
 document.getElementById("owner-signin").addEventListener("click",async()=>{
  const email=document.getElementById("owner-email").value.trim().toLowerCase(),password=document.getElementById("owner-password").value;
  if(email!==OWNER){status.textContent="This email is not authorised.";return;}
@@ -320,6 +319,48 @@ document.getElementById("owner-logout").addEventListener("click",()=>signOut(aut
  }
  if(Array.isArray(window.LW_PRODUCTS))render(window.LW_PRODUCTS);
  window.addEventListener("lw-catalog-updated",function(e){render(e.detail);});
+})();
+</script>
+<script id="lw-independent-controls">
+(function(){
+ const ownerLink=document.getElementById("owner-top-link");
+ const ownerPanel=document.getElementById("owner-panel");
+ if(ownerLink&&ownerPanel){
+  ownerLink.addEventListener("click",function(e){
+   e.preventDefault();
+   ownerPanel.style.display="block";
+   ownerPanel.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+ }
+ let latest=Array.isArray(window.LW_PRODUCTS)?window.LW_PRODUCTS.slice():null;
+ window.addEventListener("lw-catalog-updated",function(e){
+  if(Array.isArray(e.detail))latest=e.detail.slice();
+ });
+ function safe(v){return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+ function openRateCard(autoPrint){
+  if(!Array.isArray(latest)||!latest.length){
+   alert("The rate card is still loading. Please wait a moment and try again.");
+   return;
+  }
+  const win=window.open("about:blank","_blank");
+  if(!win){
+   alert("Please allow pop-ups for Laundrywala, then click this button again.");
+   return;
+  }
+  const cats=[...new Set(latest.map(p=>p[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
+  const body=cats.map(cat=>{
+   const rows=latest.filter(p=>p[0]===cat).map(p=>"<tr><td>"+safe(p[1])+"</td><td>₹"+Number(p[2]).toLocaleString("en-IN")+"</td><td>"+safe(p[3])+"</td></tr>").join("");
+   return "<section class='category'><h2>"+safe(cat)+"</h2><table><thead><tr><th>Service / Item</th><th>Price (INR)</th><th>Unit</th></tr></thead><tbody>"+rows+"</tbody></table></section>";
+  }).join("");
+  win.document.open();
+  win.document.write("<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Laundrywala Complete Rate Card</title><style>body{font:14px/1.5 Arial,sans-serif;color:#172b40;margin:28px}header{text-align:center;border-bottom:3px solid #082b50;padding-bottom:14px;margin-bottom:24px}h1{color:#082b50;margin:0}header p{margin:5px}.actions{text-align:center;margin:18px}.actions button{background:#082b50;color:#fff;border:0;border-radius:7px;padding:12px 20px;font-weight:bold;cursor:pointer}.category{margin:0 0 24px;break-inside:avoid}h2{background:#082b50;color:#fff;padding:8px 12px;font-size:17px}table{width:100%;border-collapse:collapse}th,td{padding:7px 9px;border:1px solid #dce5ef;text-align:left}th{background:#eaf1f8}td:nth-child(2){font-weight:bold;white-space:nowrap}@media print{body{margin:12mm}.actions{display:none}.category{break-inside:avoid}h2,th{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><header><img src='https://laundrywala.pages.dev/logo.svg' alt='Laundrywala logo' style='width:76px;height:76px;object-fit:contain;display:block;margin:0 auto 10px'><h1>LAUNDRYWALA</h1><p>Complete Live Rate Card</p><p>All prices in Indian Rupees (₹)</p></header><div class='actions'><button onclick='window.print()'>Print / Save as PDF</button></div>"+body+"</body></html>");
+  win.document.close();
+  if(autoPrint)win.addEventListener("load",function(){win.setTimeout(function(){win.focus();win.print();},350);});
+ }
+ const view=document.getElementById("view-live-rate-card");
+ const pdf=document.getElementById("download-live-rate-card");
+ if(view)view.addEventListener("click",function(){openRateCard(false);});
+ if(pdf)pdf.addEventListener("click",function(){openRateCard(true);});
 })();
 </script>
 <script>
