@@ -168,6 +168,7 @@
    <input id="owner-password" type="password" autocomplete="current-password" placeholder="Password">
   </div>
   <button id="owner-signin" type="button" style="margin-top:12px">Sign in</button>
+  <p id="owner-login-status" role="status" aria-live="polite" style="margin-top:10px;color:#9a2730;font-weight:600"></p>
  </div>
  <div id="owner-tools" hidden>
   <p id="owner-status" role="status">Signed in.</p>
@@ -296,7 +297,7 @@ document.getElementById("owner-logout").addEventListener("click",()=>signOut(aut
 </script>
 <script type="module" id="lw-owner-auth-reliable">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 const config={
  apiKey:"AIzaSyCJb5pmI_f_vMvF9OCSJnJhIhRveiV-75o",
  authDomain:"laundrywala-4e98a.firebaseapp.com",
@@ -306,11 +307,17 @@ const config={
  appId:"1:302721522136:web:a29f529faca8686e4f3aad"
 };
 const OWNER="laundrywala.hinjawadi@gmail.com";
-const status=document.getElementById("owner-status");
+const status=document.getElementById("owner-login-status");
 const button=document.getElementById("owner-signin");
+const login=document.getElementById("owner-login");
+const tools=document.getElementById("owner-tools");
 try{
  const app=getApps().find(a=>a.name==="[DEFAULT]")||initializeApp(config);
  const auth=getAuth(app);
+ onAuthStateChanged(auth,user=>{
+  if(user&&user.email===OWNER){login.hidden=true;tools.hidden=false;status.textContent="Signed in. Loading your price list…";}
+  else{login.hidden=false;tools.hidden=true;}
+ });
  button.addEventListener("click",async()=>{
   const email=document.getElementById("owner-email").value.trim().toLowerCase();
   const password=document.getElementById("owner-password").value;
@@ -319,7 +326,7 @@ try{
   button.disabled=true;button.textContent="Signing in…";status.textContent="Checking owner account…";
   try{
    await signInWithEmailAndPassword(auth,email,password);
-   status.textContent="Sign-in successful. Loading Owner Panel…";
+   status.textContent="Sign-in successful. Opening Owner Panel…";
   }catch(e){
    const messages={
     "auth/invalid-credential":"Email or password is incorrect. Please check and try again.",
