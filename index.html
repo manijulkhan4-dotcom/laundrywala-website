@@ -231,6 +231,7 @@ function buildRateCard(items,autoPrint){
 \n</body></html>');
  win.document.close();
 }
+if(Array.isArray(catalogItems))renderPublicPrices(catalogItems);
 window.addEventListener("lw-catalog-updated",e=>renderPublicPrices(e.detail));
 document.getElementById("view-live-rate-card").addEventListener("click",()=>{if(catalogItems)buildRateCard(catalogItems,false);});
 document.getElementById("download-live-rate-card").addEventListener("click",()=>{if(catalogItems)buildRateCard(catalogItems,true);});
