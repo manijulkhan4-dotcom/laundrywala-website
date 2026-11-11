@@ -189,7 +189,7 @@
  </div>
 </section>
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 const firebaseConfig = {
@@ -201,7 +201,7 @@ const firebaseConfig = {
  appId:"1:302721522136:web:a29f529faca8686e4f3aad"
 };
 const OWNER="laundrywala.hinjawadi@gmail.com";
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),catalogRef=doc(db,"catalog","items");
+const app=getApps().find(a=>a.name==="[DEFAULT]")||initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),catalogRef=doc(db,"catalog","items");
 const panel=document.getElementById("owner-panel"),login=document.getElementById("owner-login"),tools=document.getElementById("owner-tools");
 const status=document.getElementById("owner-status"),list=document.getElementById("owner-items");
 let catalogItems=Array.isArray(window.LW_PRODUCTS)?window.LW_PRODUCTS:null;
