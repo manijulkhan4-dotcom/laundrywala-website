@@ -293,11 +293,11 @@ list.addEventListener("click",async e=>{
  }
  if(del){const i=Number(del.dataset.delete);if(!confirm("Delete "+catalogItems[i][1]+"?"))return;const removed=catalogItems.splice(i,1)[0];try{await saveItems();drawAdmin();}catch(err){catalogItems.splice(i,0,removed);status.textContent="Delete failed. Check Firestore Rules.";console.error(err);}}
 });
-document.getElementById("owner-logout").addEventListener("click",()=>signOut(auth));
+
 </script>
 <script type="module" id="lw-owner-auth-reliable">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 const config={
  apiKey:"AIzaSyCJb5pmI_f_vMvF9OCSJnJhIhRveiV-75o",
  authDomain:"laundrywala-4e98a.firebaseapp.com",
@@ -314,6 +314,13 @@ const tools=document.getElementById("owner-tools");
 try{
  const app=getApps().find(a=>a.name==="[DEFAULT]")||initializeApp(config);
  const auth=getAuth(app);
+ const logout=document.getElementById("owner-logout");
+ logout.addEventListener("click",async()=>{
+  logout.disabled=true;logout.textContent="Signing out…";
+  try{await signOut(auth);status.textContent="You have been signed out.";}
+  catch(e){status.textContent="Sign out failed: "+(e.code||e.message||"Please retry.");console.error("Laundrywala sign out:",e);}
+  finally{logout.disabled=false;logout.textContent="Sign out";}
+ });
  onAuthStateChanged(auth,user=>{
   if(user&&user.email===OWNER){login.hidden=true;tools.hidden=false;status.textContent="Signed in. Loading your price list…";}
   else{login.hidden=false;tools.hidden=true;}
