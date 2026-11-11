@@ -240,12 +240,7 @@ async function loadPublicCatalog(){
 }
 loadPublicCatalog();
 
-document.getElementById("owner-signin").addEventListener("click",async()=>{
- const email=document.getElementById("owner-email").value.trim().toLowerCase(),password=document.getElementById("owner-password").value;
- if(email!==OWNER){status.textContent="This email is not authorised.";return;}
- try{await signInWithEmailAndPassword(auth,email,password);}
- catch(e){status.textContent="Sign-in failed. Check the email and password.";console.error(e);}
-});
+
 onAuthStateChanged(auth,async user=>{
  if(user&&user.email===OWNER){
   login.hidden=true;tools.hidden=false;
@@ -298,6 +293,50 @@ list.addEventListener("click",async e=>{
  if(del){const i=Number(del.dataset.delete);if(!confirm("Delete "+catalogItems[i][1]+"?"))return;const removed=catalogItems.splice(i,1)[0];try{await saveItems();drawAdmin();}catch(err){catalogItems.splice(i,0,removed);status.textContent="Delete failed. Check Firestore Rules.";console.error(err);}}
 });
 document.getElementById("owner-logout").addEventListener("click",()=>signOut(auth));
+</script>
+<script type="module" id="lw-owner-auth-reliable">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+const config={
+ apiKey:"AIzaSyCJb5pmI_f_vMvF9OCSJnJhIhRveiV-75o",
+ authDomain:"laundrywala-4e98a.firebaseapp.com",
+ projectId:"laundrywala-4e98a",
+ storageBucket:"laundrywala-4e98a.firebasestorage.app",
+ messagingSenderId:"302721522136",
+ appId:"1:302721522136:web:a29f529faca8686e4f3aad"
+};
+const OWNER="laundrywala.hinjawadi@gmail.com";
+const status=document.getElementById("owner-status");
+const button=document.getElementById("owner-signin");
+try{
+ const app=getApps().find(a=>a.name==="[DEFAULT]")||initializeApp(config);
+ const auth=getAuth(app);
+ button.addEventListener("click",async()=>{
+  const email=document.getElementById("owner-email").value.trim().toLowerCase();
+  const password=document.getElementById("owner-password").value;
+  if(email!==OWNER){status.textContent="This email is not authorised.";return;}
+  if(!password){status.textContent="Please enter your password.";return;}
+  button.disabled=true;button.textContent="Signing in…";status.textContent="Checking owner account…";
+  try{
+   await signInWithEmailAndPassword(auth,email,password);
+   status.textContent="Sign-in successful. Loading Owner Panel…";
+  }catch(e){
+   const messages={
+    "auth/invalid-credential":"Email or password is incorrect. Please check and try again.",
+    "auth/user-not-found":"Owner account not found. Check Firebase Authentication user setup.",
+    "auth/wrong-password":"Incorrect password. Please try again.",
+    "auth/too-many-requests":"Too many attempts. Please wait and try again.",
+    "auth/operation-not-allowed":"Email/Password sign-in is not enabled in Firebase Authentication.",
+    "auth/network-request-failed":"Network problem. Check your internet connection and try again."
+   };
+   status.textContent=messages[e.code]||("Sign-in failed ("+(e.code||"unknown")+"). Please try again.");
+   console.error("Laundrywala owner sign-in:",e);
+  }finally{button.disabled=false;button.textContent="Sign in";}
+ });
+}catch(e){
+ status.textContent="Owner sign-in could not start. Please refresh the page and try again.";
+ console.error("Laundrywala owner authentication setup:",e);
+}
 </script>
 <script id="lw-public-price-fallback">
 (function(){
