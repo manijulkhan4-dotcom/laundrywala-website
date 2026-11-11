@@ -236,7 +236,7 @@ if(Array.isArray(catalogItems))renderPublicPrices(catalogItems);
 window.addEventListener("lw-catalog-updated",e=>renderPublicPrices(e.detail));
 
 async function loadPublicCatalog(){
- try{const snap=await getDoc(catalogRef);if(snap.exists()&&Array.isArray(snap.data().items)){const items=fromFirestoreItems(snap.data().items);if(items)publishItems(items);}}
+ try{const snap=await getDoc(catalogRef);if(snap.exists()&&Array.isArray(snap.data().items)&&snap.data().items.length){const items=fromFirestoreItems(snap.data().items);if(items)publishItems(items);}}
  catch(e){console.warn("Could not load online catalog:",e);}
 }
 loadPublicCatalog();
@@ -247,9 +247,10 @@ onAuthStateChanged(auth,async user=>{
   login.hidden=true;tools.hidden=false;
   try{
    const snap=await getDoc(catalogRef);
-   if(snap.exists()&&Array.isArray(snap.data().items)){catalogItems=fromFirestoreItems(snap.data().items);publishItems(catalogItems);}
-   else if(catalogItems){await setDoc(catalogRef,{items:toFirestoreItems(catalogItems),updatedAt:new Date().toISOString()});}
-   else{status.textContent="Catalog could not be loaded. Refresh the page and try again.";return;}
+   if(snap.exists()&&Array.isArray(snap.data().items)&&snap.data().items.length){catalogItems=fromFirestoreItems(snap.data().items);publishItems(catalogItems);}
+   else if(Array.isArray(window.LW_PRODUCTS)&&window.LW_PRODUCTS.length){catalogItems=window.LW_PRODUCTS.map(p=>p.slice());await setDoc(catalogRef,{items:toFirestoreItems(catalogItems),updatedAt:new Date().toISOString()});publishItems(catalogItems);}
+   else if(Array.isArray(catalogItems)&&catalogItems.length){await setDoc(catalogRef,{items:toFirestoreItems(catalogItems),updatedAt:new Date().toISOString()});}
+   else{status.textContent="No catalog items found. Please contact support before editing.";return;}
    status.textContent="Signed in as owner. Changes save to the live website.";
    drawAdmin();
   }catch(e){status.textContent="Catalog error: "+(e.code||"unknown")+" — "+(e.message||"Please check Firebase Firestore settings.");console.error("Laundrywala catalog error:",e);}
