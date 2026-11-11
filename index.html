@@ -49,9 +49,10 @@
  function render(){
   const keys=Object.keys(cart);count.textContent=keys.reduce((n,k)=>n+cart[k].qty,0);
   if(!keys.length){items.textContent='Your cart is empty. Add a service above to get started.';total.textContent='₹0';return;}
-  items.innerHTML=keys.map(k=>{const x=cart[k];return '<div class="price-row"><span>'+x.name+' ('+x.qty+' '+x.unit+')</span><span><b>₹'+(x.qty*x.price)+'</b> <button type="button" data-remove="'+k+'" style="margin-left:8px;border:0;background:#fee;color:#922;padding:5px 9px;border-radius:8px;cursor:pointer">Remove</button></span></div>';}).join('');
+  items.innerHTML=keys.map(k=>{const x=cart[k];const qtyControl=x.unit==='kg'?'<label style="display:inline-flex;align-items:center;gap:5px;margin-right:7px;font-size:13px;color:var(--muted)">KG <input type="number" min="0.1" step="0.1" value="'+x.qty+'" data-qty-key="'+k+'" aria-label="Quantity in kilograms" style="width:76px;padding:6px;border:1px solid #ccd7e2;border-radius:8px;font:inherit"></label>':x.qty+' '+x.unit;return '<div class="price-row"><span>'+x.name+' ('+qtyControl+')</span><span><b>₹'+(x.qty*x.price)+'</b> <button type="button" data-remove="'+k+'" style="margin-left:8px;border:0;background:#fee;color:#922;padding:5px 9px;border-radius:8px;cursor:pointer">Remove</button></span></div>';}).join('');
   total.textContent='₹'+keys.reduce((n,k)=>n+cart[k].qty*cart[k].price,0);
  }
+ items.addEventListener('change',e=>{const input=e.target.closest('[data-qty-key]');if(!input)return;const key=input.dataset.qtyKey;if(!cart[key])return;let qty=Number(input.value);if(!Number.isFinite(qty)||qty<0.1)qty=0.1;qty=Math.round(qty*10)/10;cart[key].qty=qty;render();});
  items.addEventListener('click',e=>{const b=e.target.closest('[data-remove]');if(b){delete cart[b.dataset.remove];render();}});
  document.getElementById('order-now').addEventListener('click',()=>{
   const name=document.getElementById('customer-name').value.trim(),phone=document.getElementById('customer-phone').value.trim(),address=document.getElementById('customer-address').value.trim(),keys=Object.keys(cart);
