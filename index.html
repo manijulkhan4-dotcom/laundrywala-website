@@ -300,6 +300,28 @@ list.addEventListener("click",async e=>{
 });
 document.getElementById("owner-logout").addEventListener("click",()=>signOut(auth));
 </script>
+<script id="lw-public-price-fallback">
+(function(){
+ function render(items){
+  const box=document.getElementById("public-price-list");
+  if(!box||!Array.isArray(items))return;
+  const find=(category,pattern)=>items.find(p=>Array.isArray(p)&&p[0]===category&&pattern.test(String(p[1])));
+  const chosen=[
+   ["Wash & Fold — Per KG",find("Laundry by KG",/Wash & Fold – Per KG/i)],
+   ["Wash & Iron — Per KG",find("Laundry by KG",/Wash & Iron – Per KG/i)],
+   ["Express Wash & Fold — Per KG",find("Laundry by KG",/Wash & Fold – Express – Per KG/i)],
+   ["Express Wash & Iron — Per KG",find("Laundry by KG",/Wash & Iron – Express – Per KG/i)],
+   ["Shirt Ironing",find("Ironing",/^Shirt$/i)],
+   ["T-Shirt Ironing",find("Ironing",/^T-Shirt$/i)],
+   ["Sports Shoes Cleaning",find("Shoe & Helmet Cleaning",/^Sports Shoes$/i)],
+   ["Leather Shoes Cleaning",find("Shoe & Helmet Cleaning",/^Leather Shoes$/i)]
+  ].filter(x=>x[1]&&Number.isFinite(Number(x[1][2])));
+  box.innerHTML=chosen.map(([label,p])=>'<div class="price-row"><span>'+String(label)+'</span><b>₹'+Number(p[2]).toLocaleString("en-IN")+'</b></div>').join("")||'<p class="muted">Prices are temporarily unavailable. Please contact us on WhatsApp.</p>';
+ }
+ if(Array.isArray(window.LW_PRODUCTS))render(window.LW_PRODUCTS);
+ window.addEventListener("lw-catalog-updated",function(e){render(e.detail);});
+})();
+</script>
 <script>
 (function(){
  const welcome=document.getElementById("namaste-welcome");
