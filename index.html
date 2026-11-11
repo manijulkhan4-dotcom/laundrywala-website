@@ -96,7 +96,8 @@
    <select id="new-unit" style="padding:10px;border:1px solid #ccd7e2;border-radius:8px"><option>piece</option><option>kg</option><option>pair</option><option>service</option></select>
    <button id="owner-add" type="button">Add item</button>
   </div>
-  <h3>Manage existing items</h3>
+  <h3>Manage items by category</h3>
+  <select id="owner-category-filter" style="width:100%;padding:11px;border:1px solid #ccd7e2;border-radius:8px;margin-bottom:10px"><option value="">All categories</option></select>
   <input id="owner-filter" placeholder="Search item or category..." style="margin-bottom:12px">
   <div id="owner-items"></div>
   <button id="owner-logout" type="button" style="margin-top:14px;background:#9a2730">Sign out</button>
@@ -149,15 +150,26 @@ onAuthStateChanged(auth,async user=>{
 });
 async function saveItems(){await setDoc(catalogRef,{items:toFirestoreItems(catalogItems),updatedAt:new Date().toISOString()});publishItems(catalogItems);status.textContent="Saved. Customer prices and cart are updated.";}
 function drawAdmin(){
- const cats=[...new Set(catalogItems.map(x=>x[0]))].sort();
+ const cats=[...new Set(catalogItems.map(x=>x[0]))].sort((a,b)=>a.localeCompare(b));
  document.getElementById("owner-categories").innerHTML=cats.map(c=>'<option value="'+esc(c)+'"></option>').join("");
+ const categoryFilter=document.getElementById("owner-category-filter");
+ const selected=categoryFilter.value;
+ categoryFilter.innerHTML='<option value="">All categories ('+catalogItems.length+' items)</option>'+cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+' ('+catalogItems.filter(p=>p[0]===c).length+')</option>').join("");
+ if(cats.includes(selected))categoryFilter.value=selected;
+ const chosen=categoryFilter.value;
  const q=document.getElementById("owner-filter").value.trim().toLowerCase();
- list.innerHTML=catalogItems.map((p,i)=>({p,i})).filter(x=>(x.p[0]+" "+x.p[1]).toLowerCase().includes(q)).map(({p,i})=>
- '<div class="owner-row" data-row="'+i+'"><input data-field="cat" value="'+esc(p[0])+'" aria-label="Category"><input data-field="name" value="'+esc(p[1])+'" aria-label="Item name"><input data-field="price" type="number" min="0" step="0.01" value="'+Number(p[2])+'" aria-label="Price"><select data-field="unit" style="padding:10px;border:1px solid #ccd7e2;border-radius:8px"><option '+(p[3]==="piece"?"selected":"")+'>piece</option><option '+(p[3]==="kg"?"selected":"")+'>kg</option><option '+(p[3]==="pair"?"selected":"")+'>pair</option><option '+(p[3]==="service"?"selected":"")+'>service</option></select><button data-save="'+i+'" type="button">Save</button><button data-delete="'+i+'" type="button" style="background:#9a2730">Delete</button></div>'
- ).join("")||"<p>No items found.</p>";
+ const filtered=catalogItems.map((p,i)=>({p,i})).filter(x=>(!chosen||x.p[0]===chosen)&&(!q||(x.p[0]+" "+x.p[1]).toLowerCase().includes(q)));
+ const groups=[...new Set(filtered.map(x=>x.p[0]))].sort((a,b)=>a.localeCompare(b));
+ list.innerHTML=groups.map(cat=>{
+  const rows=filtered.filter(x=>x.p[0]===cat);
+  return '<section style="border:1px solid #dce5ef;border-radius:12px;padding:12px;margin:12px 0;background:#f8fafc"><h4 style="margin:0 0 10px;color:#082b50;display:flex;justify-content:space-between;gap:8px"><span>'+esc(cat)+'</span><small>'+rows.length+' items</small></h4>'+rows.map(({p,i})=>
+   '<div class="owner-row" data-row="'+i+'"><input data-field="cat" value="'+esc(p[0])+'" aria-label="Category"><input data-field="name" value="'+esc(p[1])+'" aria-label="Item name"><input data-field="price" type="number" min="0" step="0.01" value="'+Number(p[2])+'" aria-label="Price"><select data-field="unit" style="padding:10px;border:1px solid #ccd7e2;border-radius:8px"><option '+(p[3]==="piece"?"selected":"")+'>piece</option><option '+(p[3]==="kg"?"selected":"")+'>kg</option><option '+(p[3]==="pair"?"selected":"")+'>pair</option><option '+(p[3]==="service"?"selected":"")+'>service</option></select><button data-save="'+i+'" type="button">Save</button><button data-delete="'+i+'" type="button" style="background:#9a2730">Delete</button></div>'
+  ).join("")+'</section>';
+ }).join("")||"<p>No items found in this category.</p>";
 }
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 document.getElementById("owner-filter").addEventListener("input",drawAdmin);
+document.getElementById("owner-category-filter").addEventListener("change",drawAdmin);
 document.getElementById("owner-add").addEventListener("click",async()=>{
  const cat=document.getElementById("new-category").value.trim(),name=document.getElementById("new-name").value.trim(),price=Number(document.getElementById("new-price").value),unit=document.getElementById("new-unit").value;
  if(!cat||!name||!Number.isFinite(price)||price<0){status.textContent="Enter category, item name and a valid price.";return;}
