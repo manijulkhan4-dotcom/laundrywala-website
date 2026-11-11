@@ -192,6 +192,7 @@
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 const firebaseConfig = {
  apiKey:"AIzaSyCJb5pmI_f_vMvF9OCSJnJhIhRveiV-75o",
  authDomain:"laundrywala-4e98a.firebaseapp.com",
@@ -312,26 +313,54 @@ const status=document.getElementById("owner-login-status");
 const button=document.getElementById("owner-signin");
 const login=document.getElementById("owner-login");
 const tools=document.getElementById("owner-tools");
-let fallbackItems=Array.isArray(window.LW_PRODUCTS)?window.LW_PRODUCTS.slice():[];
+let fallbackItems=Array.isArray(window.LW_PRODUCTS)?window.LW_PRODUCTS.map(p=>p.slice()):[];
+let fallbackDb=null, fallbackCatalogRef=null;
+const safeFallback=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function renderOwnerFallback(){
  const filter=document.getElementById("owner-category-filter"),list=document.getElementById("owner-items"),search=document.getElementById("owner-filter");
  if(!filter||!list||!Array.isArray(fallbackItems))return;
  const categories=[...new Set(fallbackItems.map(p=>p[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
  const selected=filter.value;
- filter.innerHTML='<option value="">All categories ('+fallbackItems.length+' items)</option>'+categories.map(c=>'<option value="'+String(c).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))+'">'+String(c)+' ('+fallbackItems.filter(p=>p[0]===c).length+')</option>').join("");
+ filter.innerHTML='<option value="">All categories ('+fallbackItems.length+' items)</option>'+categories.map(c=>'<option value="'+safeFallback(c)+'">'+safeFallback(c)+' ('+fallbackItems.filter(p=>p[0]===c).length+')</option>').join("");
  if(categories.includes(selected))filter.value=selected;
  const chosen=filter.value,q=(search&&search.value||"").trim().toLowerCase();
- const filtered=fallbackItems.filter(p=>(!chosen||p[0]===chosen)&&(!q||(String(p[0])+" "+String(p[1])).toLowerCase().includes(q)));
- const safe=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
- const groups=[...new Set(filtered.map(p=>p[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
- list.innerHTML=groups.map(cat=>'<section style="border:1px solid #dce5ef;border-radius:12px;padding:12px;margin:12px 0;background:#f8fafc"><h4>'+safe(cat)+' ('+filtered.filter(p=>p[0]===cat).length+' items)</h4>'+filtered.filter(p=>p[0]===cat).map(p=>'<p style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e5eaf0;padding:8px 0;margin:0"><span>'+safe(p[1])+'</span><b>₹'+Number(p[2]).toLocaleString("en-IN")+' / '+safe(p[3])+'</b></p>').join("")+'</section>').join("")||'<p>No items found in this category.</p>';
+ const filtered=fallbackItems.map((p,i)=>({p,i})).filter(x=>(!chosen||x.p[0]===chosen)&&(!q||(String(x.p[0])+" "+String(x.p[1])).toLowerCase().includes(q)));
+ const groups=[...new Set(filtered.map(x=>x.p[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
+ list.innerHTML=groups.map(cat=>'<section style="border:1px solid #dce5ef;border-radius:12px;padding:12px;margin:12px 0;background:#f8fafc"><h4>'+safeFallback(cat)+' ('+filtered.filter(x=>x.p[0]===cat).length+' items)</h4>'+filtered.filter(x=>x.p[0]===cat).map(({p,i})=>'<div class="owner-row" data-fallback-row="'+i+'" style="display:grid;grid-template-columns:1fr 1.4fr .7fr .8fr auto auto;gap:7px;margin:8px 0"><input data-field="cat" value="'+safeFallback(p[0])+'" aria-label="Category"><input data-field="name" value="'+safeFallback(p[1])+'" aria-label="Item name"><input data-field="price" type="number" min="0" step="0.01" value="'+Number(p[2])+'" aria-label="Price"><select data-field="unit" style="padding:10px;border:1px solid #ccd7e2;border-radius:8px">'+["piece","kg","pair","service"].map(u=>'<option value="'+u+'" '+(p[3]===u?"selected":"")+'>'+u+'</option>').join("")+'</select><button type="button" data-fallback-save="'+i+'">Save rate</button><button type="button" data-fallback-delete="'+i+'" style="background:#9a2730">Delete</button></div>').join("")+'</section>').join("")||'<p>No items found in this category.</p>';
+}
+async function saveFallbackItems(){
+ if(!fallbackCatalogRef)throw new Error("Database is not ready. Please refresh and sign in again.");
+ await setDoc(fallbackCatalogRef,{items:fallbackItems.map(p=>({category:p[0],name:p[1],price:Number(p[2]),unit:p[3]})),updatedAt:new Date().toISOString()});
+ window.dispatchEvent(new CustomEvent("lw-catalog-updated",{detail:fallbackItems.map(p=>p.slice())}));
+ status.textContent="Saved. Customer prices and cart are updated.";
 }
 document.getElementById("owner-category-filter")?.addEventListener("change",renderOwnerFallback);
 document.getElementById("owner-filter")?.addEventListener("input",renderOwnerFallback);
-window.addEventListener("lw-catalog-updated",e=>{if(Array.isArray(e.detail)){fallbackItems=e.detail.slice();renderOwnerFallback();}});
+document.getElementById("owner-items")?.addEventListener("click",async e=>{
+ const save=e.target.closest("[data-fallback-save]"),del=e.target.closest("[data-fallback-delete]");
+ if(!save&&!del)return;
+ const i=Number((save||del).dataset.fallbackSave??(save||del).dataset.fallbackDelete);
+ if(!Number.isInteger(i)||!fallbackItems[i])return;
+ if(del){
+  if(!confirm("Delete "+fallbackItems[i][1]+"?"))return;
+  const removed=fallbackItems.splice(i,1)[0];
+  try{await saveFallbackItems();renderOwnerFallback();}
+  catch(err){fallbackItems.splice(i,0,removed);status.textContent="Delete failed: "+(err.code||err.message);renderOwnerFallback();}
+  return;
+ }
+ const row=save.closest("[data-fallback-row]");
+ const cat=row.querySelector('[data-field="cat"]').value.trim(),name=row.querySelector('[data-field="name"]').value.trim(),price=Number(row.querySelector('[data-field="price"]').value),unit=row.querySelector('[data-field="unit"]').value;
+ if(!cat||!name||!Number.isFinite(price)||price<0){status.textContent="Enter valid item details.";return;}
+ const old=fallbackItems[i];fallbackItems[i]=[cat,name,price,unit];
+ try{await saveFallbackItems();renderOwnerFallback();}
+ catch(err){fallbackItems[i]=old;status.textContent="Save failed: "+(err.code||err.message);renderOwnerFallback();}
+});
+window.addEventListener("lw-catalog-updated",e=>{if(Array.isArray(e.detail)){fallbackItems=e.detail.map(p=>p.slice());renderOwnerFallback();}});
+
 try{
  const app=getApps().find(a=>a.name==="[DEFAULT]")||initializeApp(config);
  const auth=getAuth(app);
+ const db=getFirestore(app); fallbackDb=db; fallbackCatalogRef=doc(db,"catalog","items");
  const logout=document.getElementById("owner-logout");
  logout.addEventListener("click",async()=>{
   logout.disabled=true;logout.textContent="Signing out…";
@@ -339,8 +368,8 @@ try{
   catch(e){status.textContent="Sign out failed: "+(e.code||e.message||"Please retry.");console.error("Laundrywala sign out:",e);}
   finally{logout.disabled=false;logout.textContent="Sign out";}
  });
- onAuthStateChanged(auth,user=>{
-  if(user&&user.email===OWNER){login.hidden=true;tools.hidden=false;status.textContent="Signed in. Loading your price list…";renderOwnerFallback();}
+ onAuthStateChanged(auth,async user=>{
+  if(user&&user.email===OWNER){login.hidden=true;tools.hidden=false;status.textContent="Signed in. Loading your price list…";try{const snap=await getDoc(fallbackCatalogRef);if(snap.exists()&&Array.isArray(snap.data().items)&&snap.data().items.length){fallbackItems=snap.data().items.map(p=>Array.isArray(p)?p:[p.category,p.name,p.price,p.unit]);}}catch(err){console.warn("Owner fallback catalog read:",err);}renderOwnerFallback();}
   else{login.hidden=false;tools.hidden=true;}
  });
  button.addEventListener("click",async()=>{
