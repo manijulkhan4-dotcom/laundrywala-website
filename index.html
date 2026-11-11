@@ -57,12 +57,16 @@
  items.addEventListener('change',e=>{const input=e.target.closest('[data-qty-key]');if(!input)return;const key=input.dataset.qtyKey;if(!cart[key])return;let qty=Number(input.value);if(!Number.isFinite(qty)||qty<0.1)qty=0.1;qty=Math.round(qty*10)/10;cart[key].qty=qty;render();});
  items.addEventListener('click',e=>{const b=e.target.closest('[data-remove]');if(b){delete cart[b.dataset.remove];render();}});
  document.getElementById('order-now').addEventListener('click',()=>{
-  const name=document.getElementById('customer-name').value.trim(),phone=document.getElementById('customer-phone').value.trim(),address=document.getElementById('customer-address').value.trim(),keys=Object.keys(cart);
-  if(!keys.length){alert('Please add at least one service to your cart.');return;}if(!name||!phone){alert('Please enter your name and phone number.');return;}
+  const keys=Object.keys(cart),details=document.getElementById('checkout-details'),button=document.getElementById('order-now');
+  if(!keys.length){alert('Please add at least one service to your cart.');return;}
+  if(details.hidden){details.hidden=false;button.textContent='Confirm & Send Order on WhatsApp →';details.scrollIntoView({behavior:'smooth',block:'nearest'});document.getElementById('customer-name').focus();return;}
+  const name=document.getElementById('customer-name').value.trim(),phone=document.getElementById('customer-phone').value.trim(),address=document.getElementById('customer-address').value.trim();
+  if(!name||!phone||!address){alert('Please fill in your name, mobile number and full pickup address before placing the order.');(!name?document.getElementById('customer-name'):!phone?document.getElementById('customer-phone'):document.getElementById('customer-address')).focus();return;}
+  if(!/^[0-9+()\\-\\s]{8,18}$/.test(phone)){alert('Please enter a valid mobile number.');document.getElementById('customer-phone').focus();return;}
   const sum=keys.reduce((n,k)=>n+cart[k].qty*cart[k].price,0),lines=keys.map(k=>'• '+cart[k].name+' — '+cart[k].qty+' '+cart[k].unit+' x ₹'+cart[k].price+' = ₹'+(cart[k].qty*cart[k].price));
-  const msg='Hello Laundrywala! I would like to place an order.\n\nCustomer: '+name+'\nPhone: '+phone+'\nPickup address: '+(address||'Not provided')+'\n\nORDER ITEMS\n'+lines.join('\n')+'\n\nEstimated Total: ₹'+sum+'\n\nPlease confirm my order and pickup availability.';
+  const msg='Hello Laundrywala! I would like to place an order.\n\nCustomer: '+name+'\nPhone: '+phone+'\nPickup address: '+address+'\n\nORDER ITEMS\n'+lines.join('\n')+'\n\nEstimated Total: ₹'+sum+'\n\nPlease confirm my order and pickup availability.';
   window.open('https://wa.me/919370744947?text='+encodeURIComponent(msg),'_blank');
- });
+ });;
  showProducts();render();
 })();
 </script>
