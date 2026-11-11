@@ -51,13 +51,12 @@
   items.innerHTML=keys.map(k=>{const x=cart[k];return '<div class="price-row"><span>'+x.name+' ('+x.qty+' '+x.unit+')</span><span><b>₹'+(x.qty*x.price)+'</b> <button type="button" data-remove="'+k+'" style="margin-left:8px;border:0;background:#fee;color:#922;padding:5px 9px;border-radius:8px;cursor:pointer">Remove</button></span></div>';}).join('');
   total.textContent='₹'+keys.reduce((n,k)=>n+cart[k].qty*cart[k].price,0);
  }
- catalog.addEventListener('click',e=>{const b=e.target.closest('.add-item');if(!b)return;const p=products[Number(b.dataset.index)],key=p[0]+' — '+p[1];if(cart[key])cart[key].qty++;else cart[key]={name:key,price:p[2],unit:p[3],qty:1};render();});
  items.addEventListener('click',e=>{const b=e.target.closest('[data-remove]');if(b){delete cart[b.dataset.remove];render();}});
  document.getElementById('order-now').addEventListener('click',()=>{
   const name=document.getElementById('customer-name').value.trim(),phone=document.getElementById('customer-phone').value.trim(),address=document.getElementById('customer-address').value.trim(),keys=Object.keys(cart);
   if(!keys.length){alert('Please add at least one service to your cart.');return;}if(!name||!phone){alert('Please enter your name and phone number.');return;}
   const sum=keys.reduce((n,k)=>n+cart[k].qty*cart[k].price,0),lines=keys.map(k=>'• '+cart[k].name+' — '+cart[k].qty+' '+cart[k].unit+' x ₹'+cart[k].price+' = ₹'+(cart[k].qty*cart[k].price));
-  const msg='Hello Laundrywala! I would like to place an order.\\n\\nCustomer: '+name+'\\nPhone: '+phone+'\\nPickup address: '+(address||'Not provided')+'\\n\\nORDER ITEMS\\n'+lines.join('\\n')+'\\n\\nEstimated Total: ₹'+sum+'\\n\\nPlease confirm my order and pickup availability.';
+  const msg='Hello Laundrywala! I would like to place an order.\n\nCustomer: '+name+'\nPhone: '+phone+'\nPickup address: '+(address||'Not provided')+'\n\nORDER ITEMS\n'+lines.join('\n')+'\n\nEstimated Total: ₹'+sum+'\n\nPlease confirm my order and pickup availability.';
   window.open('https://wa.me/919370744947?text='+encodeURIComponent(msg),'_blank');
  });
  showProducts();render();
