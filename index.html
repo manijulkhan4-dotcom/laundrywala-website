@@ -355,13 +355,6 @@ document.getElementById("owner-items")?.addEventListener("click",async e=>{
  try{await saveFallbackItems();renderOwnerFallback();}
  catch(err){fallbackItems[i]=old;status.textContent="Save failed: "+(err.code||err.message);renderOwnerFallback();}
 });
-document.getElementById("owner-add")?.addEventListener("click",async()=>{
- const cat=document.getElementById("new-category").value.trim(),name=document.getElementById("new-name").value.trim(),price=Number(document.getElementById("new-price").value),unit=document.getElementById("new-unit").value;
- if(!cat||!name||!Number.isFinite(price)||price<0){status.textContent="Enter valid category, item name and price.";return;}
- fallbackItems.push([cat,name,price,unit]);
- try{await saveFallbackItems();document.getElementById("new-name").value="";document.getElementById("new-price").value="";renderOwnerFallback();}
- catch(err){fallbackItems.pop();status.textContent="Add failed: "+(err.code||err.message);}
-});
 window.addEventListener("lw-catalog-updated",e=>{if(Array.isArray(e.detail)){fallbackItems=e.detail.map(p=>p.slice());renderOwnerFallback();}});
 
 try{
