@@ -22,11 +22,12 @@
 #namaste-welcome.is-gone{opacity:0;visibility:hidden;pointer-events:none}
 .namaste-card{padding:28px 34px;max-width:340px;width:88%;border:1px solid #ffffff38;border-radius:26px;background:#ffffff12;box-shadow:0 24px 70px #00172b66;backdrop-filter:blur(9px)}
 .namaste-person{width:170px;height:170px;margin:0 auto 8px;overflow:visible}
-.namaste-arms{transform-box:fill-box;transform-origin:50% 100%;animation:namaste-greet 1.1s cubic-bezier(.2,.8,.2,1) both}
+.namaste-arms{transform-box:fill-box;transform-origin:50% 100%;animation:namaste-greet 1.35s cubic-bezier(.2,.8,.2,1) both}.namaste-card{animation:namaste-exit .65s ease-in 2.25s forwards}
 .namaste-card h2{font-size:27px;margin:8px 0 2px;color:#fff}.namaste-card p{margin:0;color:#dceeff;font-size:13px;letter-spacing:1.4px}
 .namaste-spark{fill:#f8bd20;animation:namaste-twinkle 1.4s ease-in-out infinite alternate}
 @keyframes namaste-greet{0%{transform:translateY(45px) scale(.75);opacity:0}65%{transform:translateY(-7px) scale(1.04)}100%{transform:translateY(0) scale(1);opacity:1}}
 @keyframes namaste-twinkle{from{opacity:.35;transform:scale(.7)}to{opacity:1;transform:scale(1.15)}}
+@keyframes namaste-exit{to{transform:translateY(-85px) scale(.92);opacity:0}}
 .scroll-reveal{opacity:0;transform:translateY(34px);transition:opacity .75s ease,transform .75s cubic-bezier(.2,.7,.2,1)}
 .scroll-reveal.is-visible{opacity:1;transform:translateY(0)}
 .card.scroll-reveal:nth-child(3n+2){transition-delay:.10s}.card.scroll-reveal:nth-child(3n){transition-delay:.2s}
@@ -231,7 +232,7 @@ function buildRateCard(items,autoPrint){
 (function(){
  const welcome=document.getElementById("namaste-welcome");
  if(welcome){
-  window.setTimeout(()=>welcome.classList.add("is-gone"),2600);
+  window.setTimeout(()=>welcome.classList.add("is-gone"),2950);
   welcome.addEventListener("click",()=>welcome.classList.add("is-gone"));
  }
  const revealTargets=document.querySelectorAll("main > section:not(.hero), main > section .head, main > section .card, main > section .offer, main > section .price");
