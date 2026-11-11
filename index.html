@@ -119,9 +119,11 @@ const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),c
 const panel=document.getElementById("owner-panel"),login=document.getElementById("owner-login"),tools=document.getElementById("owner-tools");
 const status=document.getElementById("owner-status"),list=document.getElementById("owner-items");
 let catalogItems=Array.isArray(window.LW_PRODUCTS)?window.LW_PRODUCTS:null;
+function fromFirestoreItems(items){return Array.isArray(items)?items.map(p=>Array.isArray(p)?p:[p.category,p.name,p.price,p.unit]):null;}
+function toFirestoreItems(items){return items.map(p=>({category:p[0],name:p[1],price:Number(p[2]),unit:p[3]}));}
 function publishItems(items){catalogItems=items;window.dispatchEvent(new CustomEvent("lw-catalog-updated",{detail:items}));}
 async function loadPublicCatalog(){
- try{const snap=await getDoc(catalogRef);if(snap.exists()&&Array.isArray(snap.data().items))publishItems(snap.data().items);}
+ try{const snap=await getDoc(catalogRef);if(snap.exists()&&Array.isArray(snap.data().items)){const items=fromFirestoreItems(snap.data().items);if(items)publishItems(items);}}
  catch(e){console.warn("Could not load online catalog:",e);}
 }
 loadPublicCatalog();
@@ -137,15 +139,15 @@ onAuthStateChanged(auth,async user=>{
   login.hidden=true;tools.hidden=false;
   try{
    const snap=await getDoc(catalogRef);
-   if(snap.exists()&&Array.isArray(snap.data().items)){catalogItems=snap.data().items;publishItems(catalogItems);}
-   else if(catalogItems){await setDoc(catalogRef,{items:catalogItems,updatedAt:new Date().toISOString()});}
+   if(snap.exists()&&Array.isArray(snap.data().items)){catalogItems=fromFirestoreItems(snap.data().items);publishItems(catalogItems);}
+   else if(catalogItems){await setDoc(catalogRef,{items:toFirestoreItems(catalogItems),updatedAt:new Date().toISOString()});}
    else{status.textContent="Catalog could not be loaded. Refresh the page and try again.";return;}
    status.textContent="Signed in as owner. Changes save to the live website.";
    drawAdmin();
   }catch(e){status.textContent="Catalog error: "+(e.code||"unknown")+" — "+(e.message||"Please check Firebase Firestore settings.");console.error("Laundrywala catalog error:",e);}
  }else{login.hidden=false;tools.hidden=true;if(user)await signOut(auth);}
 });
-async function saveItems(){await setDoc(catalogRef,{items:catalogItems,updatedAt:new Date().toISOString()});publishItems(catalogItems);status.textContent="Saved. Customer prices and cart are updated.";}
+async function saveItems(){await setDoc(catalogRef,{items:toFirestoreItems(catalogItems),updatedAt:new Date().toISOString()});publishItems(catalogItems);status.textContent="Saved. Customer prices and cart are updated.";}
 function drawAdmin(){
  const cats=[...new Set(catalogItems.map(x=>x[0]))].sort();
  document.getElementById("owner-categories").innerHTML=cats.map(c=>'<option value="'+esc(c)+'"></option>').join("");
